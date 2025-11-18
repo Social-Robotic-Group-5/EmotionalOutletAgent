@@ -7,3 +7,5 @@ build/
 /.idea
 save_flow.xml
 *.iml
+.DS_Store
+*.DS_Store

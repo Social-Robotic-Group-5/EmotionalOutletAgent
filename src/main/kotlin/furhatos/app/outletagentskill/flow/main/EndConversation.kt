@@ -6,7 +6,12 @@ import furhatos.flow.kotlin.state
 
 val EndConversation: State= state{
     onEntry {
-        furhat.say("Bye")
-        goto(Idle)
+        furhat.say({
+            random {
+                +"Bye"
+                +"Goodbye"
+            }
+            +"See you next time!"})
+        goto(Attending)
     }
 }

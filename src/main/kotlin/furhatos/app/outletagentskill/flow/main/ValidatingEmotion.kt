@@ -8,8 +8,6 @@ import furhatos.flow.kotlin.onResponse
 import furhatos.flow.kotlin.state
 import furhatos.gestures.Gestures
 import furhatos.nlu.Intent
-import furhatos.nlu.common.No
-import furhatos.nlu.common.Yes
 import furhatos.util.Language
 import furhatos.flow.kotlin.voice.Voice
 
@@ -40,15 +38,48 @@ class NegativeFeeling : Intent() {
 }
 
 val ValidatingEmotion: State = state{
-
     onEntry {
         furhat.gesture(Gestures.Smile, async = true)
         furhat.ask("How are you feeling today?")
     }
 
-    onReentry{
+    onResponse<NegativeFeeling> {
+        goto(ValidateNegative)
+    }
+
+    onResponse<PositiveFeeling> {
+        goto(ValidatePositive)
+    }
+
+}
+
+val ValidatePositive: State = state{
+    onEntry {
+        val originalVoice = furhat.voice
+        val happyVoice = Voice(
+            gender = originalVoice.gender,
+            language = originalVoice.language,
+            pitch = "high",
+            rate = 1.1,
+            volume = "medium"
+        )
+
+        furhat.voice = happyVoice
+        furhat.ask {
+            +behavior { furhat.gesture(Gestures.BigSmile, async = true) }
+            +"I'm ${furhat.voice.emphasis("glad")} to hear that. Could you tell me what made you feel ${
+                furhat.voice.emphasis(
+                    "happy"
+                )
+            } today?"
+        }
+
+        furhat.voice = originalVoice
+    }
+
+    onReentry {
         furhat.ask({
-            +"Okay!"
+            +"Nice!"
             +behavior {
                 furhat.gesture(Gestures.Smile)
             }
@@ -56,8 +87,30 @@ val ValidatingEmotion: State = state{
         })
     }
 
-    //The volume setting only works for Amazon Polly voices
-    onResponse<NegativeFeeling> {
+    onResponse() {
+        val confirm = furhat.askYN("Thank you for sharing that with me. Is there anything else you wish to share?")
+
+        if(confirm) {
+            reentry()
+        } else {
+            goto(EndConversation)
+        }
+    }
+
+    onNoResponse { // Catches silence
+        furhat.say("I didn't hear anything")
+        val confirmExit = furhat.askYN("Do you want to stop the session instead?")
+
+        if(confirmExit) {
+            goto(EndConversation)
+        } else {
+            reentry()
+        }
+    }
+}
+
+val ValidateNegative: State = state{
+    onEntry {
         val originalVoice = furhat.voice
         val sadVoice = Voice(
             gender = originalVoice.gender,
@@ -77,32 +130,19 @@ val ValidatingEmotion: State = state{
             +"Could you tell me what made you feel  ${furhat.voice.emphasis("sad")} today?"
         }
 
-        furhat.voice = originalVoice
+        furhat.voice = originalVoice }
+
+
+    onReentry{
+        furhat.ask({
+            +"Okay!"
+            +behavior {
+                furhat.gesture(Gestures.Smile)
+            }
+            +"What do you want to share?"
+        })
     }
-
-    onResponse<PositiveFeeling> {
-        val originalVoice = furhat.voice
-        val happyVoice = Voice(
-            gender = originalVoice.gender,
-            language = originalVoice.language,
-            pitch = "high",
-            rate = 1.1,
-            volume = "medium"
-        )
-
-        furhat.voice = happyVoice
-        furhat.ask {
-            +behavior { furhat.gesture(Gestures.BigSmile, async = true) }
-            +"I'm ${furhat.voice.emphasis("glad")} to hear that. Could you tell me what made you feel ${
-                furhat.voice.emphasis(
-                    "happy"
-                )
-            } today?"
-        }
-    }
-
-
-    onResponse {
+    onResponse() {
         val confirm = furhat.askYN("Thank you for sharing that with me. Is there anything else you wish to share?")
 
         if(confirm) {
@@ -111,7 +151,6 @@ val ValidatingEmotion: State = state{
             goto(EndConversation)
         }
     }
-
     onNoResponse { // Catches silence
         furhat.say("I didn't hear anything")
         val confirmExit = furhat.askYN("Do you want to stop the session instead?")
