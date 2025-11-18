@@ -4,10 +4,12 @@ import furhatos.flow.kotlin.State
 import furhatos.flow.kotlin.furhat
 import furhatos.flow.kotlin.onResponse
 import furhatos.flow.kotlin.state
+import furhatos.gestures.Gestures
 import furhatos.nlu.Intent
 import furhatos.nlu.common.No
 import furhatos.nlu.common.Yes
 import furhatos.util.Language
+
 
 class GreetReply : Intent() {
     override fun getExamples(lang: Language) = listOf(
@@ -21,6 +23,7 @@ class GreetReply : Intent() {
 
 val StartConversation: State = state {
     onEntry {
+        furhat.gesture(Gestures.BigSmile, async = true)
         furhat.ask({
             random {
                 +"Hi"
@@ -34,6 +37,7 @@ val StartConversation: State = state {
     }
 
     onResponse<Yes> {
+        furhat.gesture(Gestures.Nod, async = false)
         goto(ValidatingEmotion)
     }
 
