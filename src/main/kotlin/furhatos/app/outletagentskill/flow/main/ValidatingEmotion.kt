@@ -10,6 +10,7 @@ import furhatos.nlu.Intent
 import furhatos.nlu.common.No
 import furhatos.nlu.common.Yes
 import furhatos.util.Language
+import furhatos.flow.kotlin.voice.Voice
 
 class PositiveFeeling : Intent() {
     override fun getExamples(lang: Language) = listOf(
@@ -39,25 +40,54 @@ class NegativeFeeling : Intent() {
 
 val ValidatingEmotion: State = state{
 
-
     onEntry {
+        furhat.gesture(Gestures.Smile, async = true)
         furhat.ask("How are you feeling today?")
     }
 
-
+    //The volume setting only works for Amazon Polly voices
     onResponse<NegativeFeeling> {
-        furhat.ask({
-            +"I'm sorry to hear that"
-            +behavior {
-                furhat.gesture(Gestures.ExpressSad)
-            }
-            +"Could you tell me what made you feel sad today?"
-        })
+        val originalVoice = furhat.voice
+        val sadVoice = Voice(
+            gender = originalVoice.gender,
+            language = originalVoice.language,
+            pitch = "medium",
+            rate = 0.90,
+            volume = "soft"
+        )
+
+        furhat.voice = sadVoice
+        furhat.say {
+            +behavior { furhat.gesture(Gestures.ExpressSad, async = true) }
+            +"I am ${furhat.voice.emphasis("so")} sorry to hear that"
+        }
+
+        furhat.ask {
+            +"Could you tell me what made you feel  ${furhat.voice.emphasis("sad")} today?"
+        }
+
+        furhat.voice = originalVoice
     }
 
-
     onResponse<PositiveFeeling> {
-        furhat.ask("I'm glad to hear that. Could you tell me what made you feel happy today?")
+        val originalVoice = furhat.voice
+        val happyVoice = Voice(
+            gender = originalVoice.gender,
+            language = originalVoice.language,
+            pitch = "high",
+            rate = 1.1,
+            volume = "medium"
+        )
+
+        furhat.voice = happyVoice
+        furhat.ask {
+            +behavior { furhat.gesture(Gestures.BigSmile, async = true) }
+            +"I'm ${furhat.voice.emphasis("glad")} to hear that. Could you tell me what made you feel ${
+                furhat.voice.emphasis(
+                    "happy"
+                )
+            } today?"
+        }
     }
 
 
@@ -73,4 +103,3 @@ val ValidatingEmotion: State = state{
         goto(EndConversation)
     }
 }
-
