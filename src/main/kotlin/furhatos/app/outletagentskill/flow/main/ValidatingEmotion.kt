@@ -114,12 +114,12 @@ val ValidatingEmotion: State = state{
 
     onNoResponse { // Catches silence
         furhat.say("I didn't hear anything")
-        val confirm = furhat.askYN("Is there anything else you wish to share?")
+        val confirmExit = furhat.askYN("Do you want to stop the session instead?")
 
-        if(confirm) {
-            reentry()
-        } else {
+        if(confirmExit) {
             goto(EndConversation)
+        } else {
+            reentry()
         }
     }
 }

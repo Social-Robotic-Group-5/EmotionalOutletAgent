@@ -52,6 +52,13 @@ val StartConversation: State = state {
 
     onNoResponse { // Catches silence
         furhat.say("I didn't hear anything")
+        val confirmExit = furhat.askYN("Do you want to stop the session instead?")
+
+        if(confirmExit) {
+            goto(EndConversation)
+        } else {
+            reentry()
+        }
     }
 }
 
