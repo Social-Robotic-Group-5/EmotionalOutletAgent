@@ -68,6 +68,7 @@ shadowJar {
     from "skill.properties"
     from "assets"
     archiveExtension.set('skill')
+    mainClassName = 'furhatos.app.outletagentskill.MainKt'
 }
 
 application {
