@@ -39,11 +39,19 @@ class NegativeFeeling : Intent() {
 
 val ValidatingEmotion: State = state{
 
-
     onEntry {
         furhat.ask("How are you feeling today?")
     }
 
+    onReentry{
+        furhat.ask({
+            +"Okay!"
+            +behavior {
+                furhat.gesture(Gestures.Smile)
+            }
+            +"What do you want to share?"
+        })
+    }
 
     onResponse<NegativeFeeling> {
         furhat.ask({
@@ -60,17 +68,14 @@ val ValidatingEmotion: State = state{
         furhat.ask("I'm glad to hear that. Could you tell me what made you feel happy today?")
     }
 
-
     onResponse {
-        furhat.say("Thank you for sharing that with me. Is there anything else you wish to share?")
-    }
+        val confirm = furhat.askYN("Thank you for sharing that with me. Is there anything else you wish to share?")
 
-    onResponse<Yes> {
-        reentry()
-    }
-
-    onResponse<No> {
-        goto(EndConversation)
+        if(confirm) {
+            reentry()
+        } else {
+            goto(EndConversation)
+        }
     }
 }
 

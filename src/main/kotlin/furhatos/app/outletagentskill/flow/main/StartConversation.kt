@@ -4,6 +4,7 @@ import furhatos.flow.kotlin.State
 import furhatos.flow.kotlin.furhat
 import furhatos.flow.kotlin.onResponse
 import furhatos.flow.kotlin.state
+import furhatos.flow.kotlin.users
 import furhatos.nlu.Intent
 import furhatos.nlu.common.No
 import furhatos.nlu.common.Yes
@@ -30,15 +31,20 @@ val StartConversation: State = state {
     }
 
     onResponse<GreetReply> {
-        furhat.ask("Do you want to start this session?")
+        furhat.ask("How should I call you?")
     }
 
-    onResponse<Yes> {
-        goto(ValidatingEmotion)
-    }
+    onResponse {
+        val userName = it.text
+        users.current.put("name", userName)
+        furhat.say("Nice to meet you, $userName!")
+        var confirm = furhat.askYN("Do you want to start this session?")
 
-    onResponse<No> {
-        goto(EndConversation)
+        if(confirm) {
+            goto(ValidatingEmotion)
+        } else {
+            goto(EndConversation)
+        }
     }
 }
 
