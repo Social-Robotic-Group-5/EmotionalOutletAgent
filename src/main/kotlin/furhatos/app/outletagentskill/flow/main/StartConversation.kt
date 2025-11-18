@@ -2,12 +2,12 @@ package furhatos.app.outletagentskill.flow.main
 
 import furhatos.flow.kotlin.State
 import furhatos.flow.kotlin.furhat
+import furhatos.flow.kotlin.onNoResponse
 import furhatos.flow.kotlin.onResponse
 import furhatos.flow.kotlin.state
+import furhatos.flow.kotlin.users
 import furhatos.gestures.Gestures
 import furhatos.nlu.Intent
-import furhatos.nlu.common.No
-import furhatos.nlu.common.Yes
 import furhatos.util.Language
 
 
@@ -33,16 +33,25 @@ val StartConversation: State = state {
     }
 
     onResponse<GreetReply> {
-        furhat.ask("Do you want to start this session?")
+        furhat.ask("How should I call you?")
     }
 
-    onResponse<Yes> {
-        furhat.gesture(Gestures.Nod, async = false)
-        goto(ValidatingEmotion)
+    onResponse {
+        val userName = it.text
+        users.current.put("name", userName)
+        furhat.say("Nice to meet you, $userName!")
+        var confirm = furhat.askYN("Do you want to start this session?")
+
+        if(confirm) {
+            furhat.gesture(Gestures.Nod, async = false)
+            goto(ValidatingEmotion)
+        } else {
+            goto(EndConversation)
+        }
     }
 
-    onResponse<No> {
-        goto(EndConversation)
+    onNoResponse { // Catches silence
+        furhat.say("I didn't hear anything")
     }
 }
 

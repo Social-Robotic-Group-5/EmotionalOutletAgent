@@ -3,6 +3,7 @@ package furhatos.app.outletagentskill.flow.main
 import furhatos.flow.kotlin.State
 import furhatos.flow.kotlin.behavior
 import furhatos.flow.kotlin.furhat
+import furhatos.flow.kotlin.onNoResponse
 import furhatos.flow.kotlin.onResponse
 import furhatos.flow.kotlin.state
 import furhatos.gestures.Gestures
@@ -43,6 +44,16 @@ val ValidatingEmotion: State = state{
     onEntry {
         furhat.gesture(Gestures.Smile, async = true)
         furhat.ask("How are you feeling today?")
+    }
+
+    onReentry{
+        furhat.ask({
+            +"Okay!"
+            +behavior {
+                furhat.gesture(Gestures.Smile)
+            }
+            +"What do you want to share?"
+        })
     }
 
     //The volume setting only works for Amazon Polly voices
@@ -92,14 +103,23 @@ val ValidatingEmotion: State = state{
 
 
     onResponse {
-        furhat.say("Thank you for sharing that with me. Is there anything else you wish to share?")
+        val confirm = furhat.askYN("Thank you for sharing that with me. Is there anything else you wish to share?")
+
+        if(confirm) {
+            reentry()
+        } else {
+            goto(EndConversation)
+        }
     }
 
-    onResponse<Yes> {
-        reentry()
-    }
+    onNoResponse { // Catches silence
+        furhat.say("I didn't hear anything")
+        val confirm = furhat.askYN("Is there anything else you wish to share?")
 
-    onResponse<No> {
-        goto(EndConversation)
+        if(confirm) {
+            reentry()
+        } else {
+            goto(EndConversation)
+        }
     }
 }
