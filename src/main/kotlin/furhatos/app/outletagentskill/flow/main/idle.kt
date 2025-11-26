@@ -5,6 +5,7 @@ import furhatos.flow.kotlin.furhat
 import furhatos.flow.kotlin.onUserEnter
 import furhatos.flow.kotlin.onUserLeave
 import furhatos.flow.kotlin.state
+import furhatos.records.User
 
 val Idle: State = state {
     onEntry {
@@ -13,6 +14,12 @@ val Idle: State = state {
 
     onUserEnter {
         furhat.attend(it)
+        goto(Attending)
+    }
+
+    onButton("jumpToConversation"){
+        val virtualUser = User("virtualUserId")
+        furhat.attend(virtualUser)
         goto(Attending)
     }
 }

@@ -14,7 +14,6 @@ import furhatos.flow.kotlin.voice.Voice
 class PositiveFeeling : Intent() {
     override fun getExamples(lang: Language) = listOf(
         "I'm good",
-        "good",
         "I'm fine",
         "fine",
         "I'm well",
@@ -55,16 +54,16 @@ val ValidatingEmotion: State = state{
 
 val ValidatePositive: State = state{
     onEntry {
-        val originalVoice = furhat.voice
-        val happyVoice = Voice(
-            gender = originalVoice.gender,
-            language = originalVoice.language,
-            pitch = "high",
-            rate = 1.1,
-            volume = "medium"
-        )
-
-        furhat.voice = happyVoice
+//        val originalVoice = furhat.voice
+//        val happyVoice = Voice(
+//            gender = originalVoice.gender,
+//            language = originalVoice.language,
+//            pitch = "high",
+//            rate = 1.1,
+//            volume = "medium"
+//        )
+//
+//        furhat.voice = happyVoice
         furhat.ask {
             +behavior { furhat.gesture(Gestures.BigSmile, async = true) }
             +"I'm ${furhat.voice.emphasis("glad")} to hear that. Could you tell me what made you feel ${
@@ -74,7 +73,7 @@ val ValidatePositive: State = state{
             } today?"
         }
 
-        furhat.voice = originalVoice
+//        furhat.voice = originalVoice
     }
 
     onReentry {
@@ -111,16 +110,16 @@ val ValidatePositive: State = state{
 
 val ValidateNegative: State = state{
     onEntry {
-        val originalVoice = furhat.voice
-        val sadVoice = Voice(
-            gender = originalVoice.gender,
-            language = originalVoice.language,
-            pitch = "medium",
-            rate = 0.90,
-            volume = "soft"
-        )
-
-        furhat.voice = sadVoice
+//        val originalVoice = furhat.voice
+//        val sadVoice = Voice(
+//            gender = originalVoice.gender,
+//            language = originalVoice.language,
+//            pitch = "medium",
+//            rate = 0.90,
+//            volume = "soft"
+//        )
+//
+//        furhat.voice = sadVoice
         furhat.say {
             +behavior { furhat.gesture(Gestures.ExpressSad, async = true) }
             +"I am ${furhat.voice.emphasis("so")} sorry to hear that"
@@ -130,7 +129,8 @@ val ValidateNegative: State = state{
             +"Could you tell me what made you feel  ${furhat.voice.emphasis("sad")} today?"
         }
 
-        furhat.voice = originalVoice }
+//        furhat.voice = originalVoice
+        }
 
 
     onReentry{
