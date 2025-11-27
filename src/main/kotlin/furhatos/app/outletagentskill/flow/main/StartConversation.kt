@@ -36,6 +36,10 @@ val StartConversation: State = state {
         furhat.ask("How should I call you?")
     }
 
+    onButton("jumpToIntervention", key = "e"){
+        goto(InteractWithIntervention)
+    }
+
     onResponse {
         val userName = it.text
         users.current.put("name", userName)
@@ -44,7 +48,7 @@ val StartConversation: State = state {
 
         if(confirm) {
             furhat.gesture(Gestures.Nod, async = false)
-            goto(ValidatingEmotion)
+            goto(InteractWithIntervention)
         } else {
             goto(EndConversation)
         }
