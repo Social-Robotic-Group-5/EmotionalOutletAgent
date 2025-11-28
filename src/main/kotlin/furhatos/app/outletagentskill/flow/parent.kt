@@ -1,6 +1,6 @@
-package furhatos.app.outletagentskill.flow
+package furhatos.app.newskill.flow
 
-import furhatos.app.outletagentskill.flow.main.Idle
+import furhatos.app.newskill.flow.main.Idle
 import furhatos.flow.kotlin.*
 
 val Parent: State = state {
