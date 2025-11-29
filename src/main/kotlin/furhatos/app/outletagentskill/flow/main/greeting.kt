@@ -48,7 +48,7 @@ fun saveLogsToCSV() {
 // =========================================================================
 
 //  请在此填入您的 Gemini API KEY
-private const val API_KEY = "" 
+private const val API_KEY = ""
 
 val EXPERIMENT_QUESTIONS = listOf(
     "Could you tell me about a personal achievement you are proud of recently?",
@@ -206,11 +206,22 @@ val ActiveInterview: State = state(Parent) {
         
         // 步骤 A: 移开视线，表示思考
         furhat.gesture(Gestures.GazeAway)
-        
-        
-        // 这既模拟了思考，也填补了 API 请求的等待时间
-        furhat.say("I see...") 
-        
+
+        val thinkingPhrases = listOf(
+            "Hmm, let me think about that for a sec.",
+            "I just need a moment to take that in.",
+            "Wait a bit — I’m trying to gather my thoughts.",
+            "Give me a moment to wrap my head around that."
+        )
+        val chosenPhrase = thinkingPhrases.random()
+
+        // simulate thinking and buying time
+        furhat.say(chosenPhrase)
+
+        furhat.attend(users.current)
+
+        delay((700..1500).random().toLong())
+
         // 步骤 C: 转回视线，微笑
         furhat.gesture(Gestures.Smile)
 
