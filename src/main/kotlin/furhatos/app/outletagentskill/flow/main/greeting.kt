@@ -1,58 +1,54 @@
 package furhatos.app.outletagentskill.flow.main
 
+// 引入上级目录的 Parent 状态
 import furhatos.app.outletagentskill.flow.Parent
-import furhatos.app.outletagentskill.flow.main.Idle
+
 import furhatos.flow.kotlin.*
 import furhatos.gestures.Gestures
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.random.Random
 
 // =========================================================================
-// 1. DATA LOGGING STRUCTURE 
+// 1. 数据记录结构 (LOGGING)
 // =========================================================================
 
-// Data model for CSV rows
 data class InteractionLog(
-    val questionIndex: Int,      // Which main question (0, 1, 2)
-    val questionType: String,    // "Main" or "FollowUp"
-    val robotText: String,       // What the robot asked
-    val userText: String,        // What the user answered
-    val durationMs: Long,        // Duration of user's speech in ms
-    val wordCount: Int,          // Approximate word count
-    val responseLatency: Long    // How long user hesitated before speaking (ms)
+    val questionIndex: Int,
+    val questionType: String,
+    val robotText: String,
+    val userText: String,
+    val durationMs: Long,
+    val wordCount: Int,
+    val responseLatency: Long
 )
 
-// Global list to store logs
 val sessionLogs = mutableListOf<InteractionLog>()
 
-// Function to save logs to CSV at the end
 fun saveLogsToCSV() {
-    // Generate filename with timestamp
     val filename = "experiment_log_${System.currentTimeMillis()}.csv"
     val file = File(filename)
     
-    // Write Header
+    // 写入表头
     file.appendText("QuestionID,Type,RobotQuestion,UserAnswer,Duration_ms,WordCount,Latency_ms\n")
     
-    // Write Data
+    // 写入数据
     sessionLogs.forEach {
-        // Remove commas/newlines in text to prevent breaking CSV format
         val cleanRobot = it.robotText.replace(",", " ").replace("\n", " ").replace("\r", "")
         val cleanUser = it.userText.replace(",", " ").replace("\n", " ").replace("\r", "")
-        
         file.appendText("${it.questionIndex},${it.questionType},${cleanRobot},${cleanUser},${it.durationMs},${it.wordCount},${it.responseLatency}\n")
     }
     
-    println(" Data saved successfully to: ${file.absolutePath}")
+    println("Data saved successfully to: ${file.absolutePath}")
 }
 
 // =========================================================================
-// 2. CONFIGURATION & LLM
+// 2. 配置与 API (CONFIGURATION)
 // =========================================================================
 
-//  YOUR API KEY HERE
-private const val API_KEY = ""
+//  请在此填入您的 Gemini API KEY
+private const val API_KEY = "" 
 
 val EXPERIMENT_QUESTIONS = listOf(
     "Could you tell me about a personal achievement you are proud of recently?",
@@ -60,9 +56,19 @@ val EXPERIMENT_QUESTIONS = listOf(
     "Can you describe a time when you felt disappointed or frustrated lately?"
 )
 
+// 随机过渡语列表 (当一个话题结束时随机使用)
+val TRANSITION_PHRASES = listOf(
+    "I understand.",
+    "I see, thank you for sharing that.",
+    "That makes sense.",
+    "Got it.",
+    "That is interesting to hear.",
+    "I appreciate you telling me that."
+)
+
 var currentQuestionIndex = 0
 
-// Gemini API Call
+// Gemini API 调用逻辑
 private fun getNextMoveFromGemini(mainQuestion: String, history: String, latestUserAnswer: String): String {
     try {
         val promptText = """
@@ -75,8 +81,8 @@ private fun getNextMoveFromGemini(mainQuestion: String, history: String, latestU
             TASK:
             1. Analyze user response.
             2. DECISION:
-               - If finished/empty/short (e.g. "No", "That's it"): Output ONLY: STOP:END
-               - If engaged: Generate short follow-up question. Output ONLY question text.
+                - If finished/empty/short (e.g. "No", "That's it"): Output ONLY: STOP:END
+                - If engaged: Generate short follow-up question. Output ONLY question text.
             
             RULES: NO "Analysis:", NO quotes.
         """.trimIndent()
@@ -86,8 +92,11 @@ private fun getNextMoveFromGemini(mainQuestion: String, history: String, latestU
         connection.requestMethod = "POST"
         connection.setRequestProperty("Content-Type", "application/json")
         connection.doOutput = true
+        
+        // 处理 Prompt 中的特殊字符
         val safePrompt = promptText.replace("\"", "\\\"").replace("\n", " ")
         val jsonBody = """{"contents": [{"parts": [{"text": "$safePrompt"}]}]}"""
+        
         connection.outputStream.use { it.write(jsonBody.toByteArray()) }
 
         if (connection.responseCode == 200) {
@@ -122,7 +131,7 @@ private fun extractTextFromJson(json: String): String? {
 }
 
 // =========================================================================
-// 3. EXPERIMENT FLOW
+// 3. 实验流程 (FLOW)
 // =========================================================================
 
 val Greeting: State = state(Parent) {
@@ -141,8 +150,6 @@ val ActiveInterview: State = state(Parent) {
 
     var currentFollowUpQuestion: String = "" 
     var conversationHistory: String = ""
-    
-    // Variables for metrics
     var lastRobotText: String = ""
     var robotFinishTime: Long = 0L
 
@@ -150,23 +157,21 @@ val ActiveInterview: State = state(Parent) {
         if (currentQuestionIndex >= EXPERIMENT_QUESTIONS.size) {
             goto(ExperimentEnd)
         } else {
-            // Determine text to say
+            // 决定机器人要说的话：是新的主问题，还是追问
             val textToSay = if (currentFollowUpQuestion.isEmpty()) {
-                conversationHistory = "" // Reset history for new main question
+                conversationHistory = "" // 新的主问题开始，清空之前的追问历史
                 EXPERIMENT_QUESTIONS[currentQuestionIndex]
             } else {
                 currentFollowUpQuestion
             }
             
             lastRobotText = textToSay
-
-            // Speak
             furhat.say(textToSay)
             
-            // Capture timestamp (Long) right after speaking
+            // 记录说完话的时间点，用于计算延迟
             robotFinishTime = System.currentTimeMillis()
-
-            // Listen (Wait 2s for end silence, 60s max length, 10s timeout)
+            
+            // 监听用户回答 (最长60秒，静音超时2秒)
             furhat.listen(endSil = 2000, maxSpeech = 60000, timeout = 10000)
         }
     }
@@ -174,26 +179,16 @@ val ActiveInterview: State = state(Parent) {
     onResponse {
         val userText = it.text
         
-        // --- 1. FIX: TYPE CONVERSION FOR METRICS ---
-        
-        // it.speech.length returns Int (ms). Convert to Long for calculation.
+        // --- 1. 计算 Metrics ---
         val answerDurationMs: Long = it.speech.length.toLong()
-        
-        // Current time
         val timeNow: Long = System.currentTimeMillis()
-        
-        // Calculate Total Time (Latency + Talking)
         val totalTimeElapsed: Long = timeNow - robotFinishTime
-        
-        // Calculate Latency (Total - Talking). Ensure it's not negative.
         var latencyMs: Long = totalTimeElapsed - answerDurationMs
         if (latencyMs < 0) latencyMs = 0 
-
-        // Word Count
         val wordCount = userText.split("\\s+".toRegex()).size
         val qType = if (currentFollowUpQuestion.isEmpty()) "Main" else "FollowUp"
 
-        // --- 2. LOGGING ---
+        // --- 2. 记录日志 (Logging) ---
         val newLog = InteractionLog(
             questionIndex = currentQuestionIndex,
             questionType = qType,
@@ -205,30 +200,43 @@ val ActiveInterview: State = state(Parent) {
         )
         sessionLogs.add(newLog)
 
-        // Update history
         conversationHistory += "User: $userText. "
 
-        // --- 3. ROBOT BEHAVIOR ---
+        // --- 3. 思考行为 (Thinking Behavior) ---
+        
+        // 步骤 A: 移开视线，表示思考
         furhat.gesture(Gestures.GazeAway)
-        delay(3000)
+        
+        
+        // 这既模拟了思考，也填补了 API 请求的等待时间
+        furhat.say("I see...") 
+        
+        // 步骤 C: 转回视线，微笑
         furhat.gesture(Gestures.Smile)
 
+        // --- 4. 调用 Gemini API ---
         val nextMove = getNextMoveFromGemini(
             mainQuestion = EXPERIMENT_QUESTIONS[currentQuestionIndex],
             history = conversationHistory,
             latestUserAnswer = userText
         )
 
+        // --- 5. 处理 API 结果 ---
         if (nextMove == "STOP:END") {
-            furhat.say("Thank you for sharing.")
+            // 情况 A: 话题结束，准备进入下一题
+            // 随机选一句过渡语 (例如 "I understand")
+            val randomPhrase = TRANSITION_PHRASES.random()
+            furhat.say(randomPhrase)
+            
             currentQuestionIndex++
             currentFollowUpQuestion = ""
             delay(1000)
-            reentry()
+            reentry() // 重新进入 ActiveInterview，触发 onEntry 说下一道主问题
         } else {
+            // 情况 B: 继续追问
             conversationHistory += "Robot: $nextMove. "
             currentFollowUpQuestion = nextMove
-            reentry()
+            reentry() // 重新进入 ActiveInterview，触发 onEntry 说出追问
         }
     }
 
@@ -252,6 +260,7 @@ val ExperimentEnd: State = state(Parent) {
             println("Error saving logs: ${e.message}")
         }
         
+        // 实验结束，返回 Idle 状态
         goto(Idle)
     }
 }

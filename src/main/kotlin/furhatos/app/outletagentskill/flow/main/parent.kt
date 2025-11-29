@@ -1,6 +1,8 @@
-package furhatos.app.newskill.flow
+// 1. 确保包名与 Greeting.kt 和 Idle.kt 一致
+package furhatos.app.outletagentskill.flow
 
-import furhatos.app.newskill.flow.main.Idle
+// 2. 引入位于 main 包下的 Idle 状态
+import furhatos.app.outletagentskill.flow.main.Idle
 import furhatos.flow.kotlin.*
 
 val Parent: State = state {
@@ -16,11 +18,11 @@ val Parent: State = state {
         when {
             !users.hasAny() -> { // last user left
                 furhat.attendNobody()
+                // 3. 这里因为上面 import 了 Idle，所以不会报错
                 goto(Idle)
             }
             furhat.isAttending(it) -> furhat.attend(users.other) // current user left
             !furhat.isAttending(it) -> furhat.glance(it.head.location) // other user left, just glance
         }
     }
-
 }
